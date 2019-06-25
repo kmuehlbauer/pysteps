@@ -85,6 +85,7 @@ from matplotlib.pyplot import imread
 import numpy as np
 import os
 
+import pysteps.io as io
 from pysteps.exceptions import DataModelError
 from pysteps.exceptions import MissingOptionalDependency
 
@@ -118,6 +119,24 @@ try:
     pyproj_imported = True
 except ImportError:
     pyproj_imported = False
+
+try:
+    import xarray as xr
+
+    xarray_imported = True
+except ImportError:
+    xarray_imported = False
+
+
+def import_bom_rf3_xarray(filename, **kwargs):
+
+    if not xarray_imported:
+        raise MissingOptionalDependency(
+            "xarray package is required to import BoM Rainfields3 products "
+            "as xarray Dataset, but it is not installed"
+        )
+
+    return xr.open_mfdataset(filename)
 
 
 def import_bom_rf3(filename, **kwargs):
@@ -509,6 +528,88 @@ def import_mch_gif(filename, product, unit, accutime):
     metadata["product"] = product
 
     return R, None, metadata
+
+
+def import_mch_gif_xarray(filename, timestep, **importer_kwargs):
+    importer = io.get_method("mch_gif", "importer")
+    R, quality, meta = importer(filename, **importer_kwargs)
+    x1 = meta['x1']
+    y1 = meta['y1']
+    xsize = meta['xpixelsize']
+    ysize = meta['ypixelsize']
+
+    ds = xr.Dataset({'precipitation': (['y', 'x'], R[::-1, :])},
+                    coords={'x': (['x'], np.arange(x1 + xsize // 2,
+                                                   x1 + xsize * R.shape[1],
+                                                   xsize)),
+                            'y': (['y'], np.arange(y1 + ysize // 2,
+                                                   y1 + ysize * R.shape[0],
+                                                   ysize)),
+                            'time': (['time'], [timestep])}
+                    )
+    root = ['projection', 'x1', 'x2', 'y1', 'y2', 'xpixelsize', 'ypixelsize',
+            'yorigin']
+    prod = ['accutime', 'unit', 'transform', 'threshold', 'zerovalue',
+            'institution', 'product']
+    for key in root:
+        ds.attrs.update({key: meta[key]})
+    for key in prod:
+        ds.precipitation.attrs.update({key: meta[key]})
+    return ds
+
+
+def import_odim_hdf5_xarray(filename, **kwargs):
+    import wradlib as wrl
+
+    ncf = netCDF4.Dataset(filename, diskless=True, persist=False)
+
+    groups = [None, 'how', 'what', 'where']
+    ds, how, what, where = wrl.io.xarray.get_groups(ncf, groups)
+    if how:
+        ds.attrs.update(how.attrs)
+    if what:
+        ds.attrs.update(what.attrs)
+    if where:
+        ds.attrs.update(where.attrs)
+    src_swp_grp_name, _ = wrl.io.xarray.get_sweep_group_name(ncf,
+                                                             'dataset')
+    # iterate datasets
+    mfmt = 'data'
+    msrc = 'groups'
+    for i, dset in enumerate(src_swp_grp_name):
+
+        # retrieve ds and assign datasetX how/what/where group attributes
+        groups = [None, 'how', 'what', 'where']
+        ds_root, ds_how, ds_what, ds_where = wrl.io.xarray.get_groups(ncf[dset],
+                                                                      groups)
+        ds_grps = {'how': ds_how,
+                   'what': ds_what,
+                   'where': ds_where}
+        # datasets
+        dsets = wrl.io.xarray.get_moment_names(ncf[dset], fmt=mfmt,
+                                               src=msrc)
+        for data in dsets:
+            # retrieve and name data
+            name = ds_what.attrs['quantity']
+            dat = wrl.io.xarray.open_dataset(ncf[dset][data])
+
+            # fix dimensions
+            dims = list(dat.dims.items())
+            dat = dat.rename({dims[0][0]: 'y',
+                              dims[1][0]: 'x'})
+
+            # setup coordinates
+            xscale = where.attrs['xscale']
+            yscale = where.attrs['yscale']
+            dat = dat.assign_coords(
+                x=np.arange(0, where.attrs['xsize'] * xscale, xscale))
+            dat = dat.assign_coords(
+                y=np.arange(0, where.attrs['ysize'] * yscale, yscale) * -1)
+
+            ds[name] = dat.data
+            ds[name].attrs.update(ds_what.attrs)
+
+    return ds
 
 
 def import_mch_hdf5(filename, **kwargs):

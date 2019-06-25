@@ -26,13 +26,13 @@ from pysteps.visualization import plot_precip_field, quiver
 
 # Selected case
 date = datetime.strptime("201505151630", "%Y%m%d%H%M")
-data_source = rcparams.data_sources["mch"]
-
+data_source = rcparams.data_sources["mch_xarray"]
+print(data_source)
 ###############################################################################
 # Load the data from the archive
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-root_path = data_source["root_path"]
+root_path = '/home/data/kai/projects/pysteps-data/radar/mch'#data_source["root_path"]
 path_fmt = data_source["path_fmt"]
 fn_pattern = data_source["fn_pattern"]
 fn_ext = data_source["fn_ext"]
@@ -47,9 +47,9 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-R, quality, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
-
-del quality  # Not used
+ds = io.read_timeseries_xarray(fns, importer, **importer_kwargs)
+print(ds.precipitation)
+#del quality  # Not used
 
 ###############################################################################
 # Preprocess the data

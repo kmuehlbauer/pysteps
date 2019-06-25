@@ -18,6 +18,7 @@ _importer_methods = dict()
 _importer_methods['bom_rf3'] = importers.import_bom_rf3
 _importer_methods['fmi_pgm'] = importers.import_fmi_pgm
 _importer_methods['mch_gif'] = importers.import_mch_gif
+_importer_methods['mch_gif_xarray'] = importers.import_mch_gif_xarray
 _importer_methods['mch_hdf5'] = importers.import_mch_hdf5
 _importer_methods['mch_metranet'] = importers.import_mch_metranet
 _importer_methods['odim_hdf5'] = importers.import_odim_hdf5

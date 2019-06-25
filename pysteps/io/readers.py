@@ -76,3 +76,35 @@ def read_timeseries(inputfns, importer, **kwargs):
     metadata["timestamps"] = np.array(timestamps)
 
     return R, Q, metadata
+
+def read_timeseries_xarray(inputfns, importer, **kwargs):
+    """Read a time series of input files using the methods implemented in the
+    :py:mod:`pysteps.io.importers` module and stack them into a 3d array of
+    shape (num_timesteps, height, width).
+
+    Parameters
+    ----------
+    inputfns : tuple
+        Input files returned by a function implemented in the
+        :py:mod:`pysteps.io.archive` module.
+    importer : function
+        A function implemented in the :py:mod:`pysteps.io.importers` module.
+    kwargs : dict
+        Optional keyword arguments for the importer.
+
+    Returns
+    -------
+    out : tuple
+        A three-element tuple containing the read data and quality rasters and
+        associated metadata. If an input file name is None, the corresponding
+        precipitation and quality fields are filled with nan values. If all
+        input file names are None or if the length of the file name list is
+        zero, a three-element tuple containing None values is returned.
+
+    """
+    import xarray as xr
+    ds = []
+    for fname, tstep in zip(*inputfns):
+        ds.append(importer(fname, tstep, **kwargs))
+
+    return xr.concat(ds, dim='time')

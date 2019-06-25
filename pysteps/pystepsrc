@@ -46,6 +46,19 @@
                 "accutime": 5
             }
         },
+        "mch_xarray": {
+            "root_path": "./radar/mch",
+            "path_fmt": "%Y%m%d",
+            "fn_pattern": "AQC%y%j%H%M?_00005.801",
+            "fn_ext": "gif",
+            "importer": "mch_gif_xarray",
+            "timestep": 5,
+            "importer_kwargs": {
+                "product": "AQC",
+                "unit": "mm",
+                "accutime": 5
+            }
+        },
         "opera": {
             "root_path": "./radar/OPERA",
             "path_fmt": "%Y%m%d",
