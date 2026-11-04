@@ -208,7 +208,7 @@ import datetime
 import gzip
 import os
 from functools import partial
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -770,28 +770,44 @@ def import_fmi_geotiff(filename, fillna=np.nan, dtype="double"):
             "but it is not installed"
         )
 
-    f = gdal.Open(filename, gdalconst.GA_ReadOnly)
-
-    rb = f.GetRasterBand(1)
-    precip = rb.ReadAsArray().astype(float)
+    print("FNAME:", filename)
+    import xarray as xr
+    ds = xr.open_dataset(filename, engine="rasterio")
+    #f = gdal.Open(filename, gdalconst.GA_ReadOnly)
+    print("DS:", ds)
+    print(ds.spatial_ref)
+    #rb = f.GetRasterBand(1)
+    #precip = rb.ReadAsArray().astype(float)
+    precip = ds["band_data"].squeeze("band").values
     mask = precip == 255
     precip = (precip - 64.0) / 2.0
     precip[mask] = np.nan
 
-    sr = osr.SpatialReference()
-    pr = f.GetProjection()
-    sr.ImportFromWkt(pr)
-
-    projdef = sr.ExportToProj4()
-
-    gt = f.GetGeoTransform()
+    #sr = osr.SpatialReference()
+    #pr = f.GetProjection()
+    #print("PR:", pr, type(pr))
+    #sr.ImportFromWkt(pr)
+    #print("SR:", sr, type(sr))
+    import wradlib
+    #
+    #print(crs, type(crs))
+    import pyproj
+    projdef = pyproj.CRS.from_user_input(ds.spatial_ref.attrs["crs_wkt"])
+    crs = wradlib.georef.ensure_crs(projdef)
+    print(crs)
+    #projdef = sr.ExportToProj4()
+    #projdef = crs
+    #print(projdef)
+    #gt = f.GetGeoTransform()
+    gt = [float(g) for g in ds.spatial_ref.attrs["GeoTransform"].split(" ")]
+    print(gt, type(gt))
 
     metadata = {}
 
     metadata["projection"] = projdef
     metadata["x1"] = gt[0]
-    metadata["y1"] = gt[3] + gt[5] * f.RasterYSize
-    metadata["x2"] = metadata["x1"] + gt[1] * f.RasterXSize
+    metadata["y1"] = gt[3] + gt[5] * ds.y.size
+    metadata["x2"] = metadata["x1"] + gt[1] * ds.x.size
     metadata["y2"] = gt[3]
     metadata["xpixelsize"] = abs(gt[1])
     metadata["ypixelsize"] = abs(gt[5])
@@ -810,7 +826,7 @@ def import_fmi_geotiff(filename, fillna=np.nan, dtype="double"):
     metadata["zr_b"] = 1.53
 
     precip = _postprocess_precip(precip, fillna, dtype)
-
+    print(metadata)
     return convert_input_to_xarray_dataset(precip, None, metadata)
 
 

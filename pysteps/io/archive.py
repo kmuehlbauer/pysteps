@@ -77,6 +77,14 @@ def find_by_date(
         fn = _find_matching_filename(
             curdate, root_path, path_fmt, fn_pattern, fn_ext, silent
         )
+        from pysteps_data import DATASETS
+        from fnmatch import fnmatchcase
+
+        if "?" in fn:
+            fn = next((item for item in DATASETS.registry_files if fnmatchcase(item, fn)), None)
+        #fn = DATASETS.fetch(fn)
+        print(fn)
+        fn = DATASETS.fetch(fn)
         filenames.append(fn)
 
         timestamps.append(curdate)
@@ -90,35 +98,45 @@ def find_by_date(
         return filenames, timestamps
 
 
-def _find_matching_filename(
-    date, root_path, path_fmt, fn_pattern, fn_ext, silent=False
+def _find_matching_filename(date, root_path, path_fmt, fn_pattern, fn_ext, silent=False
 ):
+    from pysteps_data import DATASETS
+    registry = DATASETS.registry_files
+    fn = datetime.strftime(date, fn_pattern) + "." + fn_ext
     path = _generate_path(date, root_path, path_fmt)
+    path = os.path.join(path, fn)
+    return path
 
-    if os.path.exists(path):
-        fn = datetime.strftime(date, fn_pattern) + "." + fn_ext
 
-        # test for wildcars
-        if "?" in fn:
-            filenames = os.listdir(path)
-            if len(filenames) > 0:
-                for filename in filenames:
-                    if fnmatch.fnmatch(filename, fn):
-                        fn = filename
-                        break
-
-        fn = os.path.join(path, fn)
-
-        if os.path.exists(fn):
-            return fn
-        else:
-            if not silent:
-                print(f"file not found: {fn}")
-            return None
-    else:
-        if not silent:
-            print(f"path not found: {path}")
-        return None
+# def _find_matching_filename(
+#     date, root_path, path_fmt, fn_pattern, fn_ext, silent=False
+# ):
+#     path = _generate_path(date, root_path, path_fmt)
+#
+#     if os.path.exists(path):
+#         fn = datetime.strftime(date, fn_pattern) + "." + fn_ext
+#
+#         # test for wildcars
+#         if "?" in fn:
+#             filenames = os.listdir(path)
+#             if len(filenames) > 0:
+#                 for filename in filenames:
+#                     if fnmatch.fnmatch(filename, fn):
+#                         fn = filename
+#                         break
+#
+#         fn = os.path.join(path, fn)
+#
+#         if os.path.exists(fn):
+#             return fn
+#         else:
+#             if not silent:
+#                 print(f"file not found: {fn}")
+#             return None
+#     else:
+#         if not silent:
+#             print(f"path not found: {path}")
+#         return None
 
 
 def _generate_path(date, root_path, path_format):

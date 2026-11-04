@@ -14,6 +14,19 @@ precip_dataset = get_precipitation_fields(
 precip_var = precip_dataset.attrs["precip_var"]
 precip_dataarray = precip_dataset[precip_var]
 
+def test_simple_xarray():
+    from pysteps_data import DATASETS
+    import xarray as xr
+    fname = "radar/fmi/geotiff/20160928/201609281445_FINUTM.tif"
+    fname = DATASETS.fetch(fname)
+    ds = xr.open_dataset(fname, engine="rasterio")
+    print(ds)
+    print(ds.spatial_ref)
+    print(ds.band_data)
+    assert 1 == 2
+
+
+
 
 def test_io_import_fmi_geotiff_shape():
     """Test the shape of the read file."""

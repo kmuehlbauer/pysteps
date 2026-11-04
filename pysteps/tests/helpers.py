@@ -190,6 +190,7 @@ def get_precipitation_fields(
         )
 
     data_source = rcparams.data_sources[source]
+    print("DS:", data_source)
     root_path = data_source["root_path"]
     path_fmt = data_source["path_fmt"]
     fn_pattern = data_source["fn_pattern"]
@@ -211,6 +212,8 @@ def get_precipitation_fields(
         num_prev_files=num_prev_files,
         num_next_files=num_next_files,
     )
+
+    print("FILE", fns)
 
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")

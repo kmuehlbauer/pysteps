@@ -18,10 +18,12 @@ def test_decompose_recompose():
     """Tests cascade decomposition."""
 
     pytest.importorskip("netCDF4")
+    from pysteps_data import DATASETS
 
     root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
     rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
     filename = os.path.join(root_path, rel_path, "2_20180616_120000.prcp-cscn.nc")
+    filename = DATASETS.fetch(filename)
     precip_dataset = pysteps.io.import_bom_rf3(filename)
 
     # Convert to rain rate from mm

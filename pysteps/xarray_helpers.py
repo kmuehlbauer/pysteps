@@ -99,6 +99,7 @@ def compute_lat_lon(
     x_r: npt.ArrayLike, y_r: npt.ArrayLike, projection: str
 ) -> tuple[npt.ArrayLike, npt.ArrayLike]:
     x_2d, y_2d = np.meshgrid(x_r, y_r)
+    print("PROJ:", projection)
     pr = pyproj.Proj(projection)
     lon, lat = pr(x_2d.flatten(), y_2d.flatten(), inverse=True)
     return lat.reshape(x_2d.shape), lon.reshape(x_2d.shape)
@@ -401,6 +402,7 @@ def convert_output_to_xarray_dataset(
 
 
 def validate_dataset(dataset: xr.Dataset) -> xr.Dataset:
+    # our baseline we require
     if "y" not in dataset.coords:
         raise ValueError("The dataset requires a y-coordinate")
     if "x" not in dataset.coords:
